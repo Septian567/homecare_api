@@ -62,4 +62,94 @@ class Auth extends BaseController
             ]
         ]);
     }
+
+    public function changePassword()
+    {
+        $data = $this->request->getJSON(true);
+
+        if (
+            empty($data['current_password']) ||
+            empty($data['new_password'])
+        ) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON([
+                    'status' => false,
+                    'message' => 'Password lama dan password baru wajib diisi'
+                ]);
+        }
+
+        // User ID didapat dari JWT
+        $userId = $this->request->user['uid'] ?? null;
+
+        if (!$userId) {
+            return $this->response
+                ->setStatusCode(401)
+                ->setJSON([
+                    'status' => false,
+                    'message' => 'Token tidak valid'
+                ]);
+        }
+
+        $userModel = new UserModel();
+
+        $user = $userModel->find($userId);
+
+        if (!$user) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setJSON([
+                    'status' => false,
+                    'message' => 'User tidak ditemukan'
+                ]);
+        }
+
+        // Verifikasi password lama
+        if (!password_verify(
+            $data['current_password'],
+            $user['password']
+        )) {
+            return $this->response
+                ->setStatusCode(401)
+                ->setJSON([
+                    'status' => false,
+                    'message' => 'Password lama salah'
+                ]);
+        }
+
+        // Minimal 8 karakter
+        if (strlen($data['new_password']) < 8) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON([
+                    'status' => false,
+                    'message' => 'Password baru minimal 8 karakter'
+                ]);
+        }
+
+        // Jangan gunakan password lama sebagai password baru
+        if (password_verify(
+            $data['new_password'],
+            $user['password']
+        )) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON([
+                    'status' => false,
+                    'message' => 'Password baru harus berbeda dari password lama'
+                ]);
+        }
+
+        $userModel->update($userId, [
+            'password' => password_hash(
+                $data['new_password'],
+                PASSWORD_DEFAULT
+            )
+        ]);
+
+        return $this->response->setJSON([
+            'status' => true,
+            'message' => 'Password berhasil diubah'
+        ]);
+    }
 }

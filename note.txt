@@ -1,2 +1,11 @@
 memulai proyek
 - composer create-project codeigniter4/appstarter .
+
+menjalankan proyek
+- php spark serve
+
+perintah membuat file
+- php spark make:model UserModel
+
+menginput seed
+- php spark db:seed UserSeeder
